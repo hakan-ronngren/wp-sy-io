@@ -20,4 +20,6 @@ network:
 	docker network inspect $(NETWORK) > /dev/null 2>&1 || docker network create $(NETWORK)
 
 test: run
+	while ! curl -fs -o /dev/null http://localhost:8080; do sleep 1; done
+	while ! curl -fs -o /dev/null http://localhost:8081; do sleep 1; done
 	docker exec -it $(TEST_CONTAINER) python3 /usr/bin/test_suite.py
