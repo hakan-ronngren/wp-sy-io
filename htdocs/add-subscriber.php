@@ -14,9 +14,16 @@ if (!$api_base_url) {
     } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
         echo "SYSTEME_IO_BASE_URL: $api_base_url\n";
         if ($api_key) {
-            echo "SYSTEME_IO_API_KEY: (set)\n";
+            echo "SYSTEME_IO_API_KEY: (OK)\n";
+
+            // $contact = getContactByEmail($api_base_url, $api_key, 'hakan.ronngren@gmail.com');
+            // if ($contact) {
+            //     echo "Contact: $contact\n";
+            // } else {
+            //     echo "Contact not found\n";
+            // }
         } else {
-            echo "SYSTEME_IO_API_KEY: (not set)\n";
+            echo "SYSTEME_IO_API_KEY: (undefined)\n";
         }
     } else {
         header("HTTP/1.1 405 Method Not Allowed");
@@ -69,45 +76,78 @@ function getFromAPI($url, $api_key) {
     }
 }
 
+function getContactByEmail($api_base_url, $api_key, $email) {
+    $path = '/api/contacts';
+    $url = $api_base_url . $path;
+    [$status, $response] = getFromAPI("$url?email=$email", $api_key);
+    if ($status == 200) {
+        return $response->items[0] ?? null;
+    } else {
+        return null;
+    }
+}
+
+function addContact($api_base_url, $api_key, $email) {
+    $path = '/api/contacts';
+    $url = $api_base_url . $path;
+    $data = ['email' => $email];
+    [$status, $response] = postToAPI($url, $api_key, $data);
+    if ($status == 201) {
+        return $response ?? null;
+    } else {
+        return null;
+    }
+}
+
+function validateAndSplitTags($tagsString) {
+    $tagsString = preg_replace('/\s+/', '', $tagsString);
+    if (empty($tagsString)) {
+        return [];
+    }
+
+    $validTags = [];
+    $tags = explode(',', $tagsString);
+    foreach ($tags as $tag) {
+        if (preg_match('/^[a-zA-Z0-9_-]+$/', $tag) && strlen($tag) > 0) {
+            $validTags[] = $tag;
+        } else {
+            throw new Exception("Invalid tag: $tag");
+        }
+    }
+
+    return $validTags;
+}
+
 function handlePost($api_base_url, $api_key) {
     $email = $_POST['email'] ?? null;
     $redirect_to = $_POST['redirect-to'] ?? null;
+
+    try {
+        $tags = validateAndSplitTags($_POST['tags'] ?? "");
+    } catch (Exception $e) {
+        header("HTTP/1.1 400 Bad Request");
+        echo $e->getMessage();
+        return;
+    }
+
     if (!filter_var($email, FILTER_VALIDATE_EMAIL) || !filter_var($redirect_to, FILTER_VALIDATE_URL)) {
         header("HTTP/1.1 400 Bad Request");
-    } else {
-        $path = '/api/contacts';
-        $url = $api_base_url . $path;
-        $data = ['email' => $email];
-        [$status, $response] = postToAPI($url, $api_key, $data);
-
-        if (!$status) {
-            echo "POST $path did not respond; $response\n";
-        } elseif ($status == 201) {
-            $id = $response->id ?? null;
-            header("HTTP/1.1 303 See Other");
-            header("Location: $redirect_to");
-            echo "Contact added with id $id\n";
-        } elseif ($status == 422) {
-            [$status, $response] = getFromAPI("$url?email=$email", $api_key);
-            $response_str = json_encode($response);
-            if ($status == 200) {
-                if (count($response->data) != 1) {
-                    echo "Got" . count($response->data) . "contacts, expected 1\n";
-                } else {
-                    $id = $response->data[0]->id ?? null;
-                    if ($id) {
-                        header("HTTP/1.1 303 See Other");
-                        header("Location: $redirect_to");
-                        echo "Contact already exists with id $id\n";
-                    } else {
-                        echo "Contact already exists but id not found\n";
-                    }
-                }
-            } else {
-                echo "POST $path returned 422, GET $path returned $status, response = '$response_str'\n";
-            }
-        } else {
-            echo "POST $path returned $status, response = '$response_str'\n";
-        }
+        return;
     }
+
+    $contact = getContactByEmail($api_base_url, $api_key, $email);
+    if (!$contact) {
+        $contact = addContact($api_base_url, $api_key, $email);
+    }
+
+    if ($contact) {
+        header("HTTP/1.1 303 See Other");
+        header("Location: $redirect_to");
+        echo "Contact added with id $contact->id\n";
+    } else {
+        header("HTTP/1.1 500 Internal Server Error");
+        echo "Could not get or add contact\n";
+    }
+
+    # TODO: Add tags to contact
 }
