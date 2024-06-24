@@ -15,7 +15,7 @@ class TestAddSubscriber(unittest.TestCase):
 
         response = requests.post('http://web:8080/add-subscriber.php', data=form_data, allow_redirects=False)
 
-        self.assertEqual([response.status_code, response.text], [303, 'Contact added with id 1\n'])
+        self.assertEqual(response.status_code, 303)
         self.assertEqual(response.headers['Location'], form_data['redirect-to'])
 
         self.assert_subscriber_exists(form_data['email'])
@@ -38,8 +38,7 @@ class TestAddSubscriber(unittest.TestCase):
 
         self.assertEqual(response.status_code, 400)
 
-    @unittest.skip("Not implemented yet")
-    def test_assign_tag_to_subscriber(self):
+    def test_add_subscriber_and_assign_tag(self):
         # Add a new subscriber
         form_data = {
             'email': 'test@example.com',
@@ -49,7 +48,7 @@ class TestAddSubscriber(unittest.TestCase):
 
         response = requests.post('http://web:8080/add-subscriber.php', data=form_data, allow_redirects=False)
 
-        self.assertEqual([response.status_code, response.text], [303, 'Contact added with id 1\n'])
+        self.assertEqual(response.status_code, 303)
 
         self.assert_subscriber_has_tags(form_data['email'], ['tag1'])
 
@@ -58,23 +57,20 @@ class TestAddSubscriber(unittest.TestCase):
     # TODO: test that multiple tags can be set
     # TODO: test that an additional tag can be set when the user is already subscribed with a tag
     # TODO: test that the tags are still there when multiple tags are set and the user is already subscribe with one of the tags
+    # TODO: test that a tag can be both created and assigned to a user
 
     # --- Utility Functions ---
 
     def assert_subscriber_exists(self, email):
         response = requests.get('http://localhost:8081/api/contacts?email=' + email, headers={"X-Api-Key":"123"})
-
-        # Decode the JSON response
-        contacts = response.json()['items']
-        self.assertEqual(contacts[0]['email'], email)
+        contact = response.json()['items'][0]
+        self.assertEqual(contact['email'], email)
 
     def assert_subscriber_has_tags(self, email, tags):
         response = requests.get('http://localhost:8081/api/contacts?email=' + email, headers={"X-Api-Key":"123"})
-
-        # Decode the JSON response
-        contacts = response.json()['items']
-        self.assertEqual(contacts[0]['email'], email)
-        self.assertEqual(contacts[0]['tags'], tags)
+        contact = response.json()['items'][0]
+        self.assertEqual(contact['email'], email)
+        self.assertEqual(set(tag['name'] for tag in contact['tags']), set(tags))
 
 if __name__ == '__main__':
     unittest.main()

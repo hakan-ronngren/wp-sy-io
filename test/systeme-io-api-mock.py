@@ -59,33 +59,35 @@ def subscribe():
     contacts.append(contact)
     return log_result(jsonify(contact), 201)
 
-# Add a POST method with the route /apo/contact/<contact_id>/tags, to assign a tag to a contact
 @app.route('/api/contacts/<int:contact_id>/tags', methods=['POST'])
 def assign_tag(contact_id):
-    # log_request()
+    log_request()
 
-    # global contacts
-    # global tags
+    global contacts
+    global tags
 
-    # api_key = request.headers.get('X-Api-Key')
-    # if not api_key or len(api_key) == 0:
-    #     return log_result(jsonify({"error":"unauthorized"}), 401)
+    api_key = request.headers.get('X-Api-Key')
+    if not api_key or len(api_key) == 0:
+        return log_result(jsonify({"error":"unauthorized"}), 401)
 
-    # tag_id = request.get_json().get('tag_id')
-    # if not tag_id:
-    #     return log_result(jsonify({"error":"tag_id parameter is missing"}), 400)
+    tag_id = request.get_json().get('tagId')
+    if not tag_id:
+        return log_result(jsonify({"error":"tagId parameter is missing"}), 400)
 
-    # contact = next((contact for contact in contacts if contact['id'] == contact_id), None)
-    # if not contact:
-    #     return log_result(jsonify({"error":"contact not found"}), 404)
+    contact = next((contact for contact in contacts if contact['id'] == contact_id), None)
+    if not contact:
+        return log_result(jsonify({"error":"contact not found"}), 404)
 
-    # tag = next((tag for tag in tags if tag['id'] == tag_id), None)
-    # if not tag:
-    #     return log_result(jsonify({"error":"tag not found"}), 404)
+    # If the contact already has the tag, act as if the tag was successfully assigned
+    if next((tag for tag in contact['tags'] if tag['id'] == tag_id), None):
+        return log_result(jsonify(contact), 204)
 
-    # contact['tags'].append(tag)
-    # return log_result(jsonify(contact), 204)
-    return log_result(jsonify({"error":"not implemented"}), 501)
+    tag = next((tag for tag in tags if tag['id'] == tag_id), None)
+    if not tag:
+        return log_result(jsonify({"error":"tag not found"}), 404)
+
+    contact['tags'].append(tag)
+    return log_result(jsonify(contact), 204)
 
 @app.route('/api/contacts', methods=['GET'])
 def list_contacts():
@@ -100,6 +102,20 @@ def list_contacts():
         return log_result(jsonify({'items': selection, 'hasMore': False}), 200)
     else:
         return log_result(jsonify({'items': contacts, 'hasMore': False}), 200)
+
+@app.route('/api/tags', methods=['GET'])
+def list_tags():
+    log_request()
+
+    query = request.args.get('query')
+
+    global tags
+    if query:
+        # Return a list containing only the matching tags
+        selection = list(tag for tag in tags if tag['name'] == query)
+        return log_result(jsonify({'items': selection, 'hasMore': False}), 200)
+    else:
+        return log_result(jsonify({'items': tags, 'hasMore': False}), 200)
 
 def log_request():
     timestamp = str(time.time())

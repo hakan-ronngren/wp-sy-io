@@ -15,13 +15,6 @@ if (!$api_base_url) {
         echo "SYSTEME_IO_BASE_URL: $api_base_url\n";
         if ($api_key) {
             echo "SYSTEME_IO_API_KEY: (OK)\n";
-
-            // $contact = getContactByEmail($api_base_url, $api_key, 'hakan.ronngren@gmail.com');
-            // if ($contact) {
-            //     echo "Contact: $contact\n";
-            // } else {
-            //     echo "Contact not found\n";
-            // }
         } else {
             echo "SYSTEME_IO_API_KEY: (undefined)\n";
         }
@@ -99,6 +92,29 @@ function addContact($api_base_url, $api_key, $email) {
     }
 }
 
+function getTagByName($api_base_url, $api_key, $tag) {
+    $path = '/api/tags';
+    $url = $api_base_url . $path;
+    [$status, $response] = getFromAPI("$url?name=$tag", $api_key);
+    if ($status == 200) {
+        return $response->items[0] ?? null;
+    } else {
+        return null;
+    }
+}
+
+function assignTagToContact($api_base_url, $api_key, $contact_id, $tag_id) {
+    $path = "/api/contacts/$contact_id/tags";
+    $url = $api_base_url . $path;
+    $data = ['tagId' => $tag_id];
+    [$status, $response] = postToAPI($url, $api_key, $data);
+    if ($status == 201) {
+        return $response ?? null;
+    } else {
+        return null;
+    }
+}
+
 function validateAndSplitTags($tagsString) {
     $tagsString = preg_replace('/\s+/', '', $tagsString);
     if (empty($tagsString)) {
@@ -140,14 +156,24 @@ function handlePost($api_base_url, $api_key) {
         $contact = addContact($api_base_url, $api_key, $email);
     }
 
-    if ($contact) {
-        header("HTTP/1.1 303 See Other");
-        header("Location: $redirect_to");
-        echo "Contact added with id $contact->id\n";
-    } else {
+    if (!$contact) {
         header("HTTP/1.1 500 Internal Server Error");
         echo "Could not get or add contact\n";
+        return;
     }
 
-    # TODO: Add tags to contact
+    // For each tag, assign it to the contact
+    foreach ($tags as $tagName) {
+        $tag = getTagByName($api_base_url, $api_key, $tagName);
+        if (!$tag) {
+            # Currently we can only assign existing tags
+            header("HTTP/1.1 404 Not Found");
+            return;
+        }
+        assignTagToContact($api_base_url, $api_key, $contact->id, $tag->id);
+        # TODO: handle error
+    }
+
+    header("HTTP/1.1 303 See Other");
+    header("Location: $redirect_to");
 }
