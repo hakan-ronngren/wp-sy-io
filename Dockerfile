@@ -17,8 +17,8 @@ EXPOSE 8080
 RUN echo "<?php phpinfo(); ?>" > /var/www/localhost/htdocs/index.php
 
 # Handle configuration through environment variables
-RUN echo "PassEnv SYSTEME_IO_API_KEY" >> /etc/apache2/httpd.conf
-RUN echo "PassEnv SYSTEME_IO_BASE_URL" >> /etc/apache2/httpd.conf
+RUN echo "PassEnv API_KEY" >> /etc/apache2/httpd.conf
+RUN echo "PassEnv API_BASE_URL" >> /etc/apache2/httpd.conf
 
 # Start Apache
 CMD ["httpd", "-D", "FOREGROUND"]

@@ -1,11 +1,11 @@
-.PHONY: run kill build network test browse
+.PHONY: run kill build network test browse stage clean
 
 NETWORK := test-a54a4c39
 WEB_CONTAINER := web
 TEST_CONTAINER := systeme_mock
 
 run: build network kill
-	docker run -d --rm --name $(WEB_CONTAINER) -p 8080:8080 --network $(NETWORK) -e SYSTEME_IO_API_KEY=123 -e SYSTEME_IO_BASE_URL=http://$(TEST_CONTAINER):8081 -v $$PWD/htdocs:/var/www/localhost/htdocs $(WEB_CONTAINER)
+	docker run -d --rm --name $(WEB_CONTAINER) -p 8080:8080 --network $(NETWORK) -e API_KEY=$(shell printf '%.0s0' {1..64}) -e API_BASE_URL=http://$(TEST_CONTAINER):8081 -v $$PWD/htdocs:/var/www/localhost/htdocs $(WEB_CONTAINER)
 	docker run -d --rm --name $(TEST_CONTAINER) -p 8081:8081 --network $(NETWORK) $(TEST_CONTAINER)
 
 kill:
@@ -27,6 +27,16 @@ test: run
 
 browse: run
 	open http://localhost:8080/form.html
+
+stage: test staging/add-subscriber.php staging/production-config.php
+
+staging/add-subscriber.php: htdocs/add-subscriber.php
+	mkdir -p staging
+	cp htdocs/add-subscriber.php staging
+
+staging/production-config.php:
+	mkdir -p staging
+	printf "<?php\ndefine('API_BASE_URL', 'https://api.systeme.io');\ndefine('API_KEY', '');\n" > staging/production-config.php
 
 clean: kill
 	docker rmi $(WEB_CONTAINER) || true

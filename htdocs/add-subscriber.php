@@ -1,29 +1,29 @@
 <?php
-// https://developer.systeme.io/reference/api
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, Cache-Control: post-check=0, pre-check=0');
+header('Pragma: no-cache');
 
-$api_base_url = getenv('SYSTEME_IO_BASE_URL') ?: 'https://api.systeme.io';
-$api_key = getenv('SYSTEME_IO_API_KEY') ?: null;
-
-if (!$api_base_url) {
-    echo "SYSTEME_IO_BASE_URL not set\n";
-} elseif (!$api_key) {
-    echo "SYSTEME_IO_API_KEY not set\n";
+if (file_exists('production-config.php')) {
+    require_once 'production-config.php';
 } else {
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        handlePost($api_base_url, $api_key);
-    } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        echo "SYSTEME_IO_BASE_URL: $api_base_url\n";
-        if ($api_key) {
-            echo "SYSTEME_IO_API_KEY: (OK)\n";
-        } else {
-            echo "SYSTEME_IO_API_KEY: (undefined)\n";
-        }
-    } else {
-        header("HTTP/1.1 405 Method Not Allowed");
-    }
+    define('API_BASE_URL', getenv('API_BASE_URL') ?: 'https://api.systeme.io');
+    define('API_KEY', getenv('API_KEY') ?: null);
 }
 
-function postToAPI($url, $api_key, $data) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!API_BASE_URL || !API_KEY) {
+        # Misconfigured; redirect to self in the diagnose mode
+        header("HTTP/1.1 303");
+        header("Location: /add-subscriber.php");
+    } else {
+        handlePost();
+    }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    diagnose();
+} else {
+    header("HTTP/1.1 405 Method Not Allowed");
+}
+
+function postToAPI($url, $data) {
     $data_string = json_encode($data);
     $ch = curl_init($url);
     if ($ch === false) {
@@ -36,7 +36,7 @@ function postToAPI($url, $api_key, $data) {
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         'Content-Type: application/json',
         'Content-Length: ' . strlen($data_string),
-        'X-Api-Key: ' . $api_key,
+        'X-Api-Key: ' . API_KEY,
     ]);
     $result = curl_exec($ch);
     if ($result !== false) {
@@ -50,12 +50,12 @@ function postToAPI($url, $api_key, $data) {
     }
 }
 
-function getFromAPI($url, $api_key) {
+function getFromAPI($url) {
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 10);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'X-Api-Key: ' . $api_key,
+        'X-Api-Key: ' . API_KEY,
     ]);
     $result = curl_exec($ch);
     if ($result !== false) {
@@ -69,10 +69,10 @@ function getFromAPI($url, $api_key) {
     }
 }
 
-function getContactByEmail($api_base_url, $api_key, $email) {
+function getContactByEmail($email) {
     $path = '/api/contacts';
-    $url = $api_base_url . $path;
-    [$status, $response] = getFromAPI("$url?email=$email", $api_key);
+    $url = API_BASE_URL . $path;
+    [$status, $response] = getFromAPI("$url?email=$email");
     if ($status == 200) {
         return $response->items[0] ?? null;
     } else {
@@ -80,11 +80,11 @@ function getContactByEmail($api_base_url, $api_key, $email) {
     }
 }
 
-function addContact($api_base_url, $api_key, $email) {
+function addContact($email) {
     $path = '/api/contacts';
-    $url = $api_base_url . $path;
+    $url = API_BASE_URL . $path;
     $data = ['email' => $email];
-    [$status, $response] = postToAPI($url, $api_key, $data);
+    [$status, $response] = postToAPI($url, $data);
     if ($status == 201) {
         return $response ?? null;
     } else {
@@ -92,10 +92,10 @@ function addContact($api_base_url, $api_key, $email) {
     }
 }
 
-function getTagByName($api_base_url, $api_key, $tag) {
+function getTagByName($tag) {
     $path = '/api/tags';
-    $url = $api_base_url . $path;
-    [$status, $response] = getFromAPI("$url?query=$tag", $api_key);
+    $url = API_BASE_URL . $path;
+    [$status, $response] = getFromAPI("$url?query=$tag");
     if ($status == 200) {
         return $response->items[0] ?? null;
     } else {
@@ -103,11 +103,11 @@ function getTagByName($api_base_url, $api_key, $tag) {
     }
 }
 
-function assignTagToContact($api_base_url, $api_key, $contact_id, $tag_id) {
+function assignTagToContact($contact_id, $tag_id) {
     $path = "/api/contacts/$contact_id/tags";
-    $url = $api_base_url . $path;
+    $url = API_BASE_URL . $path;
     $data = ['tagId' => $tag_id];
-    [$status] = postToAPI($url, $api_key, $data);
+    [$status] = postToAPI($url, $data);
     # 204 No Content (there is no response body)
     return ($status == 204);
 }
@@ -131,7 +131,7 @@ function validateAndSplitTags($tagsString) {
     return $validTags;
 }
 
-function handlePost($api_base_url, $api_key) {
+function handlePost() {
     $email = $_POST['email'] ?? null;
     $redirect_to = $_POST['redirect-to'] ?? null;
 
@@ -148,9 +148,9 @@ function handlePost($api_base_url, $api_key) {
         return;
     }
 
-    $contact = getContactByEmail($api_base_url, $api_key, $email);
+    $contact = getContactByEmail($email);
     if (!$contact) {
-        $contact = addContact($api_base_url, $api_key, $email);
+        $contact = addContact($email);
     }
 
     if (!$contact) {
@@ -162,7 +162,7 @@ function handlePost($api_base_url, $api_key) {
     // Verify that all tags exist, then assign them
     $tagIds = [];
     foreach ($tags as $tagName) {
-        $tag = getTagByName($api_base_url, $api_key, $tagName);
+        $tag = getTagByName($tagName);
         if ($tag) {
             $tagIds[] = $tag->id;
         }
@@ -173,7 +173,7 @@ function handlePost($api_base_url, $api_key) {
         return;
     }
     foreach ($tagIds as $tagId) {
-        $response = assignTagToContact($api_base_url, $api_key, $contact->id, $tagId);
+        $response = assignTagToContact($contact->id, $tagId);
         if (!$response) {
             header("HTTP/1.1 500 Internal Server Error");
             echo "Could not assign tag to contact\n";
@@ -183,4 +183,20 @@ function handlePost($api_base_url, $api_key) {
 
     header("HTTP/1.1 303 See Other");
     header("Location: $redirect_to");
+}
+
+function diagnose() {
+    echo "<html>\n<head>\n<title>Environment check</title>\n</head>\n<body>\n<pre>\n";
+    echo "API_BASE_URL: " . API_BASE_URL . "\n";
+    if (strlen(API_KEY) != 64) {
+        echo "API_KEY: (invalid: has " . strlen(API_KEY) . " characters)\n";
+    } else {
+        echo "API_KEY: (OK)\n";
+    }
+    if (function_exists('curl_init')) {
+        echo "curl_init is defined\n";
+    } else {
+        echo "curl_init is not defined\n";
+    }
+    echo "\n</pre>\n</body>\n</html>\n";
 }
