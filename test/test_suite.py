@@ -42,12 +42,47 @@ class TestPostAddSubscriberPHP(unittest.TestCase):
         self.assertEqual(response.status_code, 303)
         self.assert_subscriber_has_tags(form_data['email'], ['tag1'])
 
-    # TODO: test that a new tag is set when the user is already subscribed
-    # TODO: test that the tag is still there when a tag is set and the user is already subscribed with a tag
-    # TODO: test that multiple tags can be set
-    # TODO: test that an additional tag can be set when the user is already subscribed with a tag
-    # TODO: test that the tags are still there when multiple tags are set and the user is already subscribe with one of the tags
-    # TODO: test that a tag can be both created and assigned to a user
+    def test_add_subscriber_and_assign_multiple_tags(self):
+        # Add a new subscriber
+        form_data = {
+            'email': 'test@example.com',
+            'redirect-to': 'https://example.com/success',
+            'tags': 'tag1,tag2'
+        }
+        response = requests.post('http://web:8080/add-subscriber.php', data=form_data, allow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assert_subscriber_has_tags(form_data['email'], ['tag1', 'tag2'])
+
+    def test_add_subscriber_and_assign_existing_tag(self):
+        # Add a new subscriber
+        form_data = {
+            'email': 'test@example.com',
+            'redirect-to': 'https://example.com/success',
+            'tags': 'tag1'
+        }
+        response = requests.post('http://web:8080/add-subscriber.php', data=form_data, allow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+
+        # Subscribe again, with the same tag
+        response = requests.post('http://web:8080/add-subscriber.php', data=form_data, allow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assert_subscriber_has_tags(form_data['email'], ['tag1'])
+
+    def test_add_subscriber_and_assign_additional_tag(self):
+        # Add a new subscriber
+        form_data = {
+            'email': 'test@example.com',
+            'redirect-to': 'https://example.com/success',
+            'tags': 'tag1'
+        }
+        response = requests.post('http://web:8080/add-subscriber.php', data=form_data, allow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+
+        # Subscribe again, with a different tag
+        form_data['tags'] = 'tag2'
+        response = requests.post('http://web:8080/add-subscriber.php', data=form_data, allow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assert_subscriber_has_tags(form_data['email'], ['tag1', 'tag2'])
 
     # --- Utility Functions ---
 

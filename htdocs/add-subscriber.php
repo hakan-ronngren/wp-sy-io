@@ -95,7 +95,7 @@ function addContact($api_base_url, $api_key, $email) {
 function getTagByName($api_base_url, $api_key, $tag) {
     $path = '/api/tags';
     $url = $api_base_url . $path;
-    [$status, $response] = getFromAPI("$url?name=$tag", $api_key);
+    [$status, $response] = getFromAPI("$url?query=$tag", $api_key);
     if ($status == 200) {
         return $response->items[0] ?? null;
     } else {
@@ -107,12 +107,9 @@ function assignTagToContact($api_base_url, $api_key, $contact_id, $tag_id) {
     $path = "/api/contacts/$contact_id/tags";
     $url = $api_base_url . $path;
     $data = ['tagId' => $tag_id];
-    [$status, $response] = postToAPI($url, $api_key, $data);
-    if ($status == 201) {
-        return $response ?? null;
-    } else {
-        return null;
-    }
+    [$status] = postToAPI($url, $api_key, $data);
+    # 204 No Content (there is no response body)
+    return ($status == 204);
 }
 
 function validateAndSplitTags($tagsString) {
@@ -162,16 +159,26 @@ function handlePost($api_base_url, $api_key) {
         return;
     }
 
-    // For each tag, assign it to the contact
+    // Verify that all tags exist, then assign them
+    $tagIds = [];
     foreach ($tags as $tagName) {
         $tag = getTagByName($api_base_url, $api_key, $tagName);
-        if (!$tag) {
-            # Currently we can only assign existing tags
-            header("HTTP/1.1 404 Not Found");
+        if ($tag) {
+            $tagIds[] = $tag->id;
+        }
+    }
+    if (count($tagIds) != count($tags)) {
+        header("HTTP/1.1 404 Not Found");
+        echo "Could not find all tags\n";
+        return;
+    }
+    foreach ($tagIds as $tagId) {
+        $response = assignTagToContact($api_base_url, $api_key, $contact->id, $tagId);
+        if (!$response) {
+            header("HTTP/1.1 500 Internal Server Error");
+            echo "Could not assign tag to contact\n";
             return;
         }
-        assignTagToContact($api_base_url, $api_key, $contact->id, $tag->id);
-        # TODO: handle error
     }
 
     header("HTTP/1.1 303 See Other");

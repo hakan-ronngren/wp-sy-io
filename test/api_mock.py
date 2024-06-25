@@ -82,10 +82,10 @@ def assign_tag(contact_id):
     if next((tag for tag in contact['tags'] if tag['id'] == tag_id), None):
         return log_result(jsonify(contact), 204)
 
+    # Look up the tag by ID and assign it to the contact
     tag = next((tag for tag in tags if tag['id'] == tag_id), None)
     if not tag:
         return log_result(jsonify({"error":"tag not found"}), 404)
-
     contact['tags'].append(tag)
     return log_result(jsonify(contact), 204)
 
