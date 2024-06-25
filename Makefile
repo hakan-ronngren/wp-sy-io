@@ -1,4 +1,4 @@
-.PHONY: run kill build network test browse stage clean
+.PHONY: run kill build network test browse staging clean
 
 NETWORK := test-a54a4c39
 WEB_CONTAINER := web
@@ -28,15 +28,9 @@ test: run
 browse: run
 	open http://localhost:8080/form.html
 
-stage: test staging/add-subscriber.php staging/production-config.php
-
-staging/add-subscriber.php: htdocs/add-subscriber.php
-	mkdir -p staging
-	cp htdocs/add-subscriber.php staging
-
-staging/production-config.php:
-	mkdir -p staging
-	printf "<?php\ndefine('API_BASE_URL', 'https://api.systeme.io');\ndefine('API_KEY', '');\n" > staging/production-config.php
+staging: test
+	mkdir staging 2> /dev/null && cp templates/production-config.php staging/ || true
+	cp htdocs/add-subscriber.php staging/
 
 clean: kill
 	docker rmi $(WEB_CONTAINER) || true
