@@ -1,10 +1,10 @@
-.PHONY: run kill build network test
+.PHONY: run kill build network test browse
 
-NETWORK := A54A4C39-EE53-461C-8A98-CA308FE277A0
+NETWORK := test-a54a4c39
 WEB_CONTAINER := web
 TEST_CONTAINER := systeme_mock
 
-run: kill build network
+run: build network kill
 	docker run -d --rm --name $(WEB_CONTAINER) -p 8080:8080 --network $(NETWORK) -e SYSTEME_IO_API_KEY=123 -e SYSTEME_IO_BASE_URL=http://$(TEST_CONTAINER):8081 -v $$PWD/htdocs:/var/www/localhost/htdocs $(WEB_CONTAINER)
 	docker run -d --rm --name $(TEST_CONTAINER) -p 8081:8081 --network $(NETWORK) $(TEST_CONTAINER)
 
@@ -22,4 +22,14 @@ network:
 test: run
 	while ! curl -fs -o /dev/null http://localhost:8080; do sleep 1; done
 	while ! curl -fs -o /dev/null http://localhost:8081; do sleep 1; done
-	docker exec -it $(TEST_CONTAINER) python3 /usr/bin/test_suite.py
+	docker exec -it -w /opt $(TEST_CONTAINER) python3 test/test_api_mock.py | sed 's|File "/opt/|File "|'
+	docker exec -it -w /opt $(TEST_CONTAINER) python3 test/test_suite.py | sed 's|File "/opt/|File "|'
+
+browse: run
+	open http://localhost:8080/form.html
+
+clean: kill
+	docker rmi $(WEB_CONTAINER) || true
+	docker rmi $(TEST_CONTAINER) || true
+	docker network rm $(NETWORK) || true
+	rm -rf test/*.pyc test/__pycache__ || true

@@ -3,7 +3,7 @@
 import unittest
 import requests
 
-class TestAddSubscriber(unittest.TestCase):
+class TestPostAddSubscriberPHP(unittest.TestCase):
     def setUp(self):
         requests.post('http://localhost:8081/test/reset')
 
@@ -12,30 +12,23 @@ class TestAddSubscriber(unittest.TestCase):
             'email': 'test@example.com',
             'redirect-to': 'https://example.com/success'
         }
-
         response = requests.post('http://web:8080/add-subscriber.php', data=form_data, allow_redirects=False)
-
         self.assertEqual(response.status_code, 303)
         self.assertEqual(response.headers['Location'], form_data['redirect-to'])
-
         self.assert_subscriber_exists(form_data['email'])
 
     def test_add_new_subscriber_missing_email(self):
         form_data = {
             'redirect-to': 'https://example.com/success'
         }
-
         response = requests.post('http://web:8080/add-subscriber.php', data=form_data, allow_redirects=False)
-
         self.assertEqual(response.status_code, 400)
 
     def test_add_new_subscriber_missing_redirect_to(self):
         form_data = {
             'email': 'test@example.com'
         }
-
         response = requests.post('http://web:8080/add-subscriber.php', data=form_data, allow_redirects=False)
-
         self.assertEqual(response.status_code, 400)
 
     def test_add_subscriber_and_assign_tag(self):
@@ -45,11 +38,8 @@ class TestAddSubscriber(unittest.TestCase):
             'redirect-to': 'https://example.com/success',
             'tags': 'tag1'
         }
-
         response = requests.post('http://web:8080/add-subscriber.php', data=form_data, allow_redirects=False)
-
         self.assertEqual(response.status_code, 303)
-
         self.assert_subscriber_has_tags(form_data['email'], ['tag1'])
 
     # TODO: test that a new tag is set when the user is already subscribed
