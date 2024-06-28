@@ -32,17 +32,19 @@ def reset():
     return log_result(jsonify({'result': 'OK'}), 204)
 
 @app.route('/api/contacts', methods=['POST'])
-def subscribe():
+def add_contact():
     log_request()
 
     global latest_contact_id
     global contacts
 
-    api_key = request.headers.get('X-Api-Key')
+    api_key = request.headers.get('X-API-Key')
     if not api_key or len(api_key) == 0:
         return log_result(jsonify({"error":"unauthorized"}), 401)
 
-    email = request.get_json().get('email')
+    new_contact = request.get_json()
+
+    email = new_contact.get('email')
     if not email:
         return log_result(jsonify({"error":"email parameter is missing"}), 400)
 
@@ -50,11 +52,23 @@ def subscribe():
         if contact['email'] == email:
             return log_result(jsonify({"error":"duplicate"}), 422)
 
+    # If the contact has fields, verify that fields is a list of dictionaries, each of which has 'slug' and 'value' keys
+    fields = new_contact.get('fields')
+    if fields:
+        if not isinstance(fields, list):
+            return log_result(jsonify({"error":"fields must be a list"}), 400)
+        for field in fields:
+            if not isinstance(field, dict):
+                return log_result(jsonify({"error":"each field must be a dictionary"}), 400)
+            if 'slug' not in field or 'value' not in field:
+                return log_result(jsonify({"error":"each field must have 'slug' and 'value' keys"}), 400)
+
     latest_contact_id += 1
     contact = {
         "id": latest_contact_id,
         "email": email,
-        "tags": []
+        "tags": [],
+        "fields": new_contact.get('fields', [])
     }
     contacts.append(contact)
     return log_result(jsonify(contact), 201)
@@ -66,7 +80,7 @@ def assign_tag(contact_id):
     global contacts
     global tags
 
-    api_key = request.headers.get('X-Api-Key')
+    api_key = request.headers.get('X-API-Key')
     if not api_key or len(api_key) == 0:
         return log_result(jsonify({"error":"unauthorized"}), 401)
 

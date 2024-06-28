@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Form</title>
+    <style lang="css">
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+        input {
+            margin: 5px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 25px;
+        }
+        input[type="submit"] {
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+        }
+        input[type="submit"]:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- You may copy the script and form elements into your page -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const emailInput = document.querySelector('input[name="email"]');
+            const submitButton = document.querySelector('input[type="submit"]');
+
+            // Initially disable the submit button
+            submitButton.disabled = true;
+
+            // Function to validate email
+            function validateEmail(email) {
+                const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return regex.test(email);
+            }
+
+            // Listen for input event on email field
+            emailInput.addEventListener('input', function() {
+                if (validateEmail(emailInput.value)) {
+                    submitButton.disabled = false; // Enable submit button
+                } else {
+                    submitButton.disabled = true; // Keep submit button disabled
+                }
+            });
+        });
+    </script>
+    <form action="add-contact.php" method="post">
+        <input type="text" name="first_name" placeholder="What should I call you?">
+        <input type="text" name="email" placeholder="Email">
+        <input type="submit" value="Submit" disabled>
+        <input type="hidden" name="tags" value="tag1,tag2">
+        <input type="hidden" name="redirect-to" value="http://localhost:8080/success.html">
+    </form>
+
+</body>
+</html>

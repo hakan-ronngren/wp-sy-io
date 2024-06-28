@@ -2,6 +2,12 @@
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, Cache-Control: post-check=0, pre-check=0');
 header('Pragma: no-cache');
 
+class InputException extends Exception {}
+class InternalServerError extends Exception {}
+class APICallException extends Exception {}
+
+# TODO: Save data locally if a POST request fails
+
 if (file_exists('production-config.php')) {
     require_once 'production-config.php';
 } else {
@@ -11,11 +17,27 @@ if (file_exists('production-config.php')) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!API_BASE_URL || !API_KEY) {
-        # Misconfigured; redirect to self in the diagnose mode
+        # Misconfigured; redirect to a GET request to self, which will run a diagnose
         header("HTTP/1.1 303");
         header("Location: /add-subscriber.php");
     } else {
-        handlePost();
+        # The plan is to redirect the visitor different pages depending on whether the request was successful or not
+        # but for now we just return a 400 or 500 error unless the request is successful.
+        try {
+            handlePost();
+        } catch (InputException $e) {
+            header("HTTP/1.1 400 Bad Request");
+            echo $e->getMessage();
+        } catch (InternalServerError $e) {
+            header("HTTP/1.1 500 Internal Server Error");
+            echo $e->getMessage();
+        } catch (APICallException $e) {
+            header("HTTP/1.1 500 Internal Server Error");
+            echo $e->getMessage();
+        } catch (Exception $e) {
+            header("HTTP/1.1 500 Internal Server Error");
+            echo $e->getMessage();
+        }
     }
 } elseif ($_SERVER['REQUEST_METHOD'] === 'GET') {
     diagnose();
@@ -27,7 +49,7 @@ function postToAPI($url, $data) {
     $data_string = json_encode($data);
     $ch = curl_init($url);
     if ($ch === false) {
-        return [null, 'curl_init failed'];
+        throw new InternalServerError('curl_init failed');
     }
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
     curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
@@ -36,39 +58,41 @@ function postToAPI($url, $data) {
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         'Content-Type: application/json',
         'Content-Length: ' . strlen($data_string),
-        'X-Api-Key: ' . API_KEY,
+        'X-API-Key: ' . API_KEY,
     ]);
     $result = curl_exec($ch);
-    if ($result !== false) {
-        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        return [$status, json_decode($result)];
-    } else {
+    if ($result === false) {
         $error = curl_error($ch);
         curl_close($ch);
-        return [null, 'curl_exec failed: ' . $error];
+        throw new APICallException('curl_exec failed: ' . $error);
     }
+    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return [$status, json_decode($result)];
 }
 
 function getFromAPI($url) {
     $ch = curl_init($url);
+    if ($ch === false) {
+        throw new InternalServerError('curl_init failed');
+    }
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 10);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'X-Api-Key: ' . API_KEY,
+        'X-API-Key: ' . API_KEY,
     ]);
     $result = curl_exec($ch);
-    if ($result !== false) {
-        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        return [$status, json_decode($result)];
-    } else {
+    if ($result === false) {
         $error = curl_error($ch);
         curl_close($ch);
-        return [null, 'curl_exec failed: ' . $error];
+        throw new APICallException('curl_exec failed: ' . $error);
     }
+    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return [$status, json_decode($result)];
 }
 
+// Get a contact by email, or null if not found
 function getContactByEmail($email) {
     $path = '/api/contacts';
     $url = API_BASE_URL . $path;
@@ -80,38 +104,45 @@ function getContactByEmail($email) {
     }
 }
 
-function addContact($email) {
+// Add a contact. Return the contact or null if not successful
+function addContact($email, $firstName) {
     $path = '/api/contacts';
     $url = API_BASE_URL . $path;
-    $data = ['email' => $email];
+    $data = ['email' => $email, 'fields' => []];
+    if ($firstName) {
+        $data['fields'][] = ['slug' => 'first_name', 'value' => $firstName];
+    }
     [$status, $response] = postToAPI($url, $data);
     if ($status == 201) {
-        return $response ?? null;
+        return $response;
     } else {
         return null;
     }
 }
 
+// Get a tag by name, or null if not found
 function getTagByName($tag) {
     $path = '/api/tags';
     $url = API_BASE_URL . $path;
     [$status, $response] = getFromAPI("$url?query=$tag");
     if ($status == 200) {
-        return $response->items[0] ?? null;
+        return $response->items[0];
     } else {
         return null;
     }
 }
 
+// Assign a tag to a contact. Return true if successful
 function assignTagToContact($contact_id, $tag_id) {
     $path = "/api/contacts/$contact_id/tags";
     $url = API_BASE_URL . $path;
     $data = ['tagId' => $tag_id];
     [$status] = postToAPI($url, $data);
     # 204 No Content (there is no response body)
-    return ($status == 204);
+    return $status == 204;
 }
 
+// Validate tags string and return an array of valid tags
 function validateAndSplitTags($tagsString) {
     $tagsString = preg_replace('/\s+/', '', $tagsString);
     if (empty($tagsString)) {
@@ -124,7 +155,7 @@ function validateAndSplitTags($tagsString) {
         if (preg_match('/^[a-zA-Z0-9_-]+$/', $tag) && strlen($tag) > 0) {
             $validTags[] = $tag;
         } else {
-            throw new Exception("Invalid tag: $tag");
+            throw new InputException("Invalid tag: $tag");
         }
     }
 
@@ -132,31 +163,37 @@ function validateAndSplitTags($tagsString) {
 }
 
 function handlePost() {
+    # Required parameters
     $email = $_POST['email'] ?? null;
-    $redirect_to = $_POST['redirect-to'] ?? null;
+    $redirectTo = $_POST['redirect-to'] ?? null;
+    # Optional parameters
+    $firstName = $_POST['first_name'] ?? null;
 
-    try {
-        $tags = validateAndSplitTags($_POST['tags'] ?? "");
-    } catch (Exception $e) {
-        header("HTTP/1.1 400 Bad Request");
-        echo $e->getMessage();
-        return;
+    $tags = validateAndSplitTags($_POST['tags'] ?? "");
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        throw new InputException("Invalid email");
     }
 
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL) || !filter_var($redirect_to, FILTER_VALIDATE_URL)) {
-        header("HTTP/1.1 400 Bad Request");
-        return;
+    if (!filter_var($redirectTo, FILTER_VALIDATE_URL)) {
+        throw new InputException("Invalid redirect-to");
+    }
+
+    // Replace all single quotes in $firstName with apostrophes to prevent SQL injection.
+    // Then validate that $firstName is a string of international characters, spaces, hyphens, and some cultural characters.
+    $firstName = str_replace("'", "’", $firstName);
+    if (!empty($firstName) && !preg_match("/^[\p{L}\s.’\-·,]+$/", $firstName)) {
+        throw new InputException("Invalid first_name");
     }
 
     $contact = getContactByEmail($email);
     if (!$contact) {
-        $contact = addContact($email);
+        $contact = addContact($email, $firstName);
     }
 
+    // By now the contact should be either found or added
     if (!$contact) {
-        header("HTTP/1.1 500 Internal Server Error");
-        echo "Could not get or add contact\n";
-        return;
+        throw new APICallException("Could not get or add contact");
     }
 
     // Verify that all tags exist, then assign them
@@ -168,21 +205,17 @@ function handlePost() {
         }
     }
     if (count($tagIds) != count($tags)) {
-        header("HTTP/1.1 404 Not Found");
-        echo "Could not find all tags\n";
-        return;
+        throw new InputException("Could not find all tags");
     }
     foreach ($tagIds as $tagId) {
         $response = assignTagToContact($contact->id, $tagId);
         if (!$response) {
-            header("HTTP/1.1 500 Internal Server Error");
-            echo "Could not assign tag to contact\n";
-            return;
+            throw new APICallException("Could not assign tag to contact");
         }
     }
 
     header("HTTP/1.1 303 See Other");
-    header("Location: $redirect_to");
+    header("Location: $redirectTo");
 }
 
 function diagnose() {

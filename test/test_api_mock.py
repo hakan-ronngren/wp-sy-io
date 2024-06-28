@@ -3,40 +3,58 @@ import requests
 
 # Test the API mock so we can use it to test the web application
 
-class TestSubscribe(unittest.TestCase):
+class TestCreateContact(unittest.TestCase):
     def setUp(self):
         requests.post('http://localhost:8081/test/reset')
 
-    def test_subscribe(self):
-        # Subscribe a new contact
+    def test_create_contact(self):
         contact_data = {
             'email': 'test@example.com'
         }
-        response = requests.post('http://localhost:8081/api/contacts', json=contact_data, headers={'X-Api-Key': '123'})
+        response = requests.post('http://localhost:8081/api/contacts', json=contact_data, headers={'X-API-Key': '123'})
         self.assertEqual(response.status_code, 201)
         contact = response.json()
 
         # Verify the contact details
         self.assertEqual(contact['email'], 'test@example.com')
         self.assertEqual(contact['tags'], [])
+        self.assertEqual(contact['fields'], [])
 
-    def test_subscribe_duplicate(self):
-        # Subscribe a new contact
+    def test_create_contact_duplicate(self):
         contact_data = {
             'email': 'test@example.com'
         }
-        response = requests.post('http://localhost:8081/api/contacts', json=contact_data, headers={'X-Api-Key': '123'})
+        response = requests.post('http://localhost:8081/api/contacts', json=contact_data, headers={'X-API-Key': '123'})
         self.assertEqual(response.status_code, 201)
 
         # Subscribe the same contact again
-        response = requests.post('http://localhost:8081/api/contacts', json=contact_data, headers={'X-Api-Key': '123'})
+        response = requests.post('http://localhost:8081/api/contacts', json=contact_data, headers={'X-API-Key': '123'})
         self.assertEqual(response.status_code, 422)
 
-    def test_subscribe_missing_email(self):
-        # Subscribe a new contact without an email
+    def test_create_contact_missing_email(self):
         contact_data = {}
-        response = requests.post('http://localhost:8081/api/contacts', json=contact_data, headers={'X-Api-Key': '123'})
+        response = requests.post('http://localhost:8081/api/contacts', json=contact_data, headers={'X-API-Key': '123'})
         self.assertEqual(response.status_code, 400)
+
+    def test_create_contact_with_first_name(self):
+        requests.post('http://localhost:8081/test/reset')
+
+        self.contact_data = {
+            'email': 'test@example.com',
+            'fields': [
+                {'slug': 'first_name', 'value': 'John'}
+            ]
+        }
+        response = requests.post('http://localhost:8081/api/contacts', json=self.contact_data, headers={'X-API-Key': '123'})
+        self.assertEqual(response.status_code, 201)
+        contact = response.json()
+
+        # Verify the contact details
+        self.assertEqual(len(contact['fields']), 1)
+        field = contact['fields'][0]
+        self.assertEqual(field['slug'], 'first_name')
+        self.assertEqual(field['value'], 'John')
+
 
 class TestAssignTag(unittest.TestCase):
     def setUp(self):
@@ -46,7 +64,7 @@ class TestAssignTag(unittest.TestCase):
         self.contact_data = {
             'email': 'test@example.com'
         }
-        response = requests.post('http://localhost:8081/api/contacts', json=self.contact_data, headers={'X-Api-Key': '123'})
+        response = requests.post('http://localhost:8081/api/contacts', json=self.contact_data, headers={'X-API-Key': '123'})
         self.assertEqual(response.status_code, 201)
         self.contact = response.json()
 
@@ -58,11 +76,11 @@ class TestAssignTag(unittest.TestCase):
         tag_data = {
             'tagId': 1
         }
-        response = requests.post(f'http://localhost:8081/api/contacts/{contact["id"]}/tags', json=tag_data, headers={'X-Api-Key': '123'})
+        response = requests.post(f'http://localhost:8081/api/contacts/{contact["id"]}/tags', json=tag_data, headers={'X-API-Key': '123'})
         self.assertEqual(response.status_code, 204)
 
         # Verify that the tag is assigned to the contact
-        response = requests.get(f'http://localhost:8081/api/contacts?email={contact_data["email"]}', headers={'X-Api-Key': '123'})
+        response = requests.get(f'http://localhost:8081/api/contacts?email={contact_data["email"]}', headers={'X-API-Key': '123'})
         self.assertEqual(response.status_code, 200)
         contact = response.json()
         self.assertEqual(len(contact['items']), 1)
@@ -74,7 +92,7 @@ class TestAssignTag(unittest.TestCase):
 
         # Assign a tag to the contact without a tag ID
         tag_data = {}
-        response = requests.post(f'http://localhost:8081/api/contacts/{contact["id"]}/tags', json=tag_data, headers={'X-Api-Key': '123'})
+        response = requests.post(f'http://localhost:8081/api/contacts/{contact["id"]}/tags', json=tag_data, headers={'X-API-Key': '123'})
         self.assertEqual(response.status_code, 400)
 
     def test_assign_tag_missing_contact(self):
@@ -82,7 +100,7 @@ class TestAssignTag(unittest.TestCase):
         tag_data = {
             'tagId': 1
         }
-        response = requests.post('http://localhost:8081/api/contacts/2/tags', json=tag_data, headers={'X-Api-Key': '123'})
+        response = requests.post('http://localhost:8081/api/contacts/2/tags', json=tag_data, headers={'X-API-Key': '123'})
         self.assertEqual(response.status_code, 404)
 
     def test_assign_tag_unauthorized(self):
@@ -103,17 +121,17 @@ class TestAssignTag(unittest.TestCase):
         tag_data = {
             'tagId': 1
         }
-        response = requests.post(f'http://localhost:8081/api/contacts/{contact["id"]}/tags', json=tag_data, headers={'X-Api-Key': '123'})
+        response = requests.post(f'http://localhost:8081/api/contacts/{contact["id"]}/tags', json=tag_data, headers={'X-API-Key': '123'})
         self.assertEqual(response.status_code, 204)
 
         tag_data = {
             'tagId': 2
         }
-        response = requests.post(f'http://localhost:8081/api/contacts/{contact["id"]}/tags', json=tag_data, headers={'X-Api-Key': '123'})
+        response = requests.post(f'http://localhost:8081/api/contacts/{contact["id"]}/tags', json=tag_data, headers={'X-API-Key': '123'})
         self.assertEqual(response.status_code, 204)
 
         # Verify that the tags are assigned to the contact
-        response = requests.get(f'http://localhost:8081/api/contacts?email={contact_data["email"]}', headers={'X-Api-Key': '123'})
+        response = requests.get(f'http://localhost:8081/api/contacts?email={contact_data["email"]}', headers={'X-API-Key': '123'})
         self.assertEqual(response.status_code, 200)
         contact = response.json()
         self.assertEqual(len(contact['items']), 1)
@@ -129,15 +147,15 @@ class TestAssignTag(unittest.TestCase):
         tag_data = {
             'tagId': 1
         }
-        response = requests.post(f'http://localhost:8081/api/contacts/{contact["id"]}/tags', json=tag_data, headers={'X-Api-Key': '123'})
+        response = requests.post(f'http://localhost:8081/api/contacts/{contact["id"]}/tags', json=tag_data, headers={'X-API-Key': '123'})
         self.assertEqual(response.status_code, 204)
 
         # Assign the same tag to the contact again
-        response = requests.post(f'http://localhost:8081/api/contacts/{contact["id"]}/tags', json=tag_data, headers={'X-Api-Key': '123'})
+        response = requests.post(f'http://localhost:8081/api/contacts/{contact["id"]}/tags', json=tag_data, headers={'X-API-Key': '123'})
         self.assertEqual(response.status_code, 204)
 
         # Verify that the tag is assigned to the contact only once
-        response = requests.get(f'http://localhost:8081/api/contacts?email={contact_data["email"]}', headers={'X-Api-Key': '123'})
+        response = requests.get(f'http://localhost:8081/api/contacts?email={contact_data["email"]}', headers={'X-API-Key': '123'})
         self.assertEqual(response.status_code, 200)
         contact = response.json()
         self.assertEqual(len(contact['items']), 1)
