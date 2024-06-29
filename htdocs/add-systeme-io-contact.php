@@ -188,10 +188,11 @@ function validateAndSplitTags($tagsString) {
     return $validTags;
 }
 
-function handlePost() {
+// Return trimmed and validated parameters in alphabetical order
+function getAndValidatePostParameters() {
     # Required parameters
-    $email = $_POST['email'] ?? null;
-    $redirectTo = $_POST['redirect-to'] ?? null;
+    $email = trim($_POST['email'] ?? '');
+    $redirectTo = trim($_POST['redirect-to'] ?? '');
     # Optional parameters
     $firstName = $_POST['first_name'] ?? null;
 
@@ -207,10 +208,20 @@ function handlePost() {
 
     // Replace all single quotes in $firstName with apostrophes to prevent SQL injection.
     // Then validate that $firstName is a string of international characters, spaces, hyphens, and some cultural characters.
-    $firstName = str_replace("'", "’", $firstName);
-    if (!empty($firstName) && !preg_match("/^[\p{L}\s.’\-·,]+$/u", $firstName)) {
-        throw new InputException("Invalid first_name");
+    if (!empty($firstName)) {
+        $firstName = trim($firstName);
+        $firstName = str_replace("'", "’", $firstName);
+        if (strpos($firstName, "--") !== false || !preg_match("/^[\p{L}\s.’\-·,]+$/u", $firstName)) {
+            throw new InputException("Invalid first_name");
+        }
     }
+
+    // Mind the alphabetical order
+    return [$email, $firstName, $redirectTo, $tags];
+}
+
+function handlePost() {
+    [$email, $firstName, $redirectTo, $tags] = getAndValidatePostParameters();
 
     $contact = getContactByEmail($email);
     if ($contact) {
