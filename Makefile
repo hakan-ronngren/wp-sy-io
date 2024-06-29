@@ -41,7 +41,7 @@ browse: run
 	open http://localhost:8080/sample-form.html
 
 staging: test
-	mkdir staging 2> /dev/null && cp templates/production-config.php staging/ || true
+	mkdir staging 2> /dev/null && cp templates/systeme-io-config.php staging/ || true
 	cp htdocs/add-subscriber.php staging/
 
 clean: kill

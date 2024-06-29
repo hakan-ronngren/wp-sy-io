@@ -8,8 +8,8 @@ class APICallException extends Exception {}
 
 # TODO: Save data locally if a POST request fails
 
-if (file_exists('production-config.php')) {
-    require_once 'production-config.php';
+if (file_exists('systeme-io-config.php')) {
+    require_once 'systeme-io-config.php';
 } else {
     define('API_BASE_URL', getenv('API_BASE_URL') ?: 'https://api.systeme.io');
     define('API_KEY', getenv('API_KEY') ?: null);
@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!API_BASE_URL || !API_KEY) {
         # Misconfigured; redirect to a GET request to self, which will run a diagnose
         header("HTTP/1.1 303");
-        header("Location: /add-contact.php");
+        header("Location: /add-systeme-io-contact.php");
     } else {
         # The plan is to redirect the visitor different pages depending on whether the request was successful or not
         # but for now we just return a 400 or 500 error unless the request is successful.

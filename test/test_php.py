@@ -12,7 +12,7 @@ class TestPostAddContactPHP(unittest.TestCase):
             'email': 'test@example.com',
             'redirect-to': 'https://example.com/success'
         }
-        response = requests.post('http://web:8080/add-contact.php', data=form_data, allow_redirects=False)
+        response = requests.post('http://web:8080/add-systeme-io-contact.php', data=form_data, allow_redirects=False)
         self.assertEqual(response.status_code, 303)
         contact = self.assert_get_contact_succeeds(form_data['email'])
         self.assertEqual(contact['fields'], [])
@@ -23,7 +23,7 @@ class TestPostAddContactPHP(unittest.TestCase):
             'email': 'test@example.com',
             'redirect-to': 'https://example.com/success'
         }
-        response = requests.post('http://web:8080/add-contact.php', data=form_data, allow_redirects=False)
+        response = requests.post('http://web:8080/add-systeme-io-contact.php', data=form_data, allow_redirects=False)
         self.assertEqual(response.status_code, 303)
         self.assertEqual(response.headers['Location'], form_data['redirect-to'])
         contact = self.assert_get_contact_succeeds(form_data['email'])
@@ -36,7 +36,7 @@ class TestPostAddContactPHP(unittest.TestCase):
             'redirect-to': 'https://example.com/success'
         }
         response = requests.post(
-            'http://web:8080/add-contact.php',
+            'http://web:8080/add-systeme-io-contact.php',
             data=form_data,
             headers={'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
             allow_redirects=False
@@ -53,7 +53,7 @@ class TestPostAddContactPHP(unittest.TestCase):
             'redirect-to': 'https://example.com/success'
         }
         response = requests.post(
-            'http://web:8080/add-contact.php',
+            'http://web:8080/add-systeme-io-contact.php',
             data=form_data,
             headers={'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
             allow_redirects=False
@@ -69,7 +69,7 @@ class TestPostAddContactPHP(unittest.TestCase):
             'email': 'test@example.com',
             'redirect-to': 'https://example.com/success'
         }
-        response = requests.post('http://web:8080/add-contact.php', data=form_data, allow_redirects=False)
+        response = requests.post('http://web:8080/add-systeme-io-contact.php', data=form_data, allow_redirects=False)
         self.assertEqual(response.status_code, 400)
 
     def test_add_new_contact_missing_email(self):
@@ -77,7 +77,7 @@ class TestPostAddContactPHP(unittest.TestCase):
             'first_name': 'John',
             'redirect-to': 'https://example.com/success'
         }
-        response = requests.post('http://web:8080/add-contact.php', data=form_data, allow_redirects=False)
+        response = requests.post('http://web:8080/add-systeme-io-contact.php', data=form_data, allow_redirects=False)
         self.assertEqual(response.status_code, 400)
 
     def test_add_new_contact_invalid_email(self):
@@ -86,7 +86,7 @@ class TestPostAddContactPHP(unittest.TestCase):
             'email': 'test', # Invalid email
             'redirect-to': 'https://example.com/success'
         }
-        response = requests.post('http://web:8080/add-contact.php', data=form_data, allow_redirects=False)
+        response = requests.post('http://web:8080/add-systeme-io-contact.php', data=form_data, allow_redirects=False)
         self.assertEqual(response.status_code, 400)
 
     def test_add_new_contact_missing_redirect_to(self):
@@ -94,7 +94,7 @@ class TestPostAddContactPHP(unittest.TestCase):
             'first_name': 'John',
             'email': 'test@example.com'
         }
-        response = requests.post('http://web:8080/add-contact.php', data=form_data, allow_redirects=False)
+        response = requests.post('http://web:8080/add-systeme-io-contact.php', data=form_data, allow_redirects=False)
         self.assertEqual(response.status_code, 400)
 
     def test_add_new_contact_invalid_redirect_to(self):
@@ -103,7 +103,7 @@ class TestPostAddContactPHP(unittest.TestCase):
             'email': 'test@example.com',
             'redirect-to': 'invalid-url' # Invalid URL
         }
-        response = requests.post('http://web:8080/add-contact.php', data=form_data, allow_redirects=False)
+        response = requests.post('http://web:8080/add-systeme-io-contact.php', data=form_data, allow_redirects=False)
         self.assertEqual(response.status_code, 400)
 
     def test_add_contact_and_assign_tag(self):
@@ -113,7 +113,7 @@ class TestPostAddContactPHP(unittest.TestCase):
             'redirect-to': 'https://example.com/success',
             'tags': 'tag1'
         }
-        response = requests.post('http://web:8080/add-contact.php', data=form_data, allow_redirects=False)
+        response = requests.post('http://web:8080/add-systeme-io-contact.php', data=form_data, allow_redirects=False)
         self.assertEqual(response.status_code, 303)
         self.assertEqual(response.headers['Location'], form_data['redirect-to'])
         contact = self.assert_get_contact_succeeds(form_data['email'])
@@ -126,7 +126,7 @@ class TestPostAddContactPHP(unittest.TestCase):
             'redirect-to': 'https://example.com/success',
             'tags': 'tag1,tag2'
         }
-        response = requests.post('http://web:8080/add-contact.php', data=form_data, allow_redirects=False)
+        response = requests.post('http://web:8080/add-systeme-io-contact.php', data=form_data, allow_redirects=False)
         self.assertEqual(response.status_code, 303)
         self.assertEqual(response.headers['Location'], form_data['redirect-to'])
         contact = self.assert_get_contact_succeeds(form_data['email'])
@@ -139,12 +139,12 @@ class TestPostAddContactPHP(unittest.TestCase):
             'redirect-to': 'https://example.com/success',
             'tags': 'tag1'
         }
-        response = requests.post('http://web:8080/add-contact.php', data=form_data, allow_redirects=False)
+        response = requests.post('http://web:8080/add-systeme-io-contact.php', data=form_data, allow_redirects=False)
         self.assertEqual(response.status_code, 303)
         self.assertEqual(response.headers['Location'], form_data['redirect-to'])
 
         # Subscribe again, with the same tag
-        response = requests.post('http://web:8080/add-contact.php', data=form_data, allow_redirects=False)
+        response = requests.post('http://web:8080/add-systeme-io-contact.php', data=form_data, allow_redirects=False)
         self.assertEqual(response.status_code, 303)
         self.assertEqual(response.headers['Location'], form_data['redirect-to'])
         contact = self.assert_get_contact_succeeds(form_data['email'])
@@ -157,13 +157,13 @@ class TestPostAddContactPHP(unittest.TestCase):
             'redirect-to': 'https://example.com/success',
             'tags': 'tag1'
         }
-        response = requests.post('http://web:8080/add-contact.php', data=form_data, allow_redirects=False)
+        response = requests.post('http://web:8080/add-systeme-io-contact.php', data=form_data, allow_redirects=False)
         self.assertEqual(response.status_code, 303)
         self.assertEqual(response.headers['Location'], form_data['redirect-to'])
 
         # Subscribe again, with a different tag
         form_data['tags'] = 'tag2'
-        response = requests.post('http://web:8080/add-contact.php', data=form_data, allow_redirects=False)
+        response = requests.post('http://web:8080/add-systeme-io-contact.php', data=form_data, allow_redirects=False)
         self.assertEqual(response.status_code, 303)
         self.assertEqual(response.headers['Location'], form_data['redirect-to'])
         contact = self.assert_get_contact_succeeds(form_data['email'])
@@ -176,13 +176,13 @@ class TestPostAddContactPHP(unittest.TestCase):
             'first_name': ''
         }
 
-        response = requests.post('http://web:8080/add-contact.php', data=form_data, allow_redirects=False)
+        response = requests.post('http://web:8080/add-systeme-io-contact.php', data=form_data, allow_redirects=False)
         self.assertEqual(response.status_code, 303)
         self.assertEqual(response.headers['Location'], form_data['redirect-to'])
 
         # Update the contact's first name
         form_data['first_name'] = 'John'
-        response = requests.post('http://web:8080/add-contact.php', data=form_data, allow_redirects=False)
+        response = requests.post('http://web:8080/add-systeme-io-contact.php', data=form_data, allow_redirects=False)
         self.assertEqual(response.status_code, 303)
         self.assertEqual(response.headers['Location'], form_data['redirect-to'])
 
@@ -196,13 +196,13 @@ class TestPostAddContactPHP(unittest.TestCase):
             'redirect-to': 'https://example.com/success',
             'first_name': 'John'
         }
-        response = requests.post('http://web:8080/add-contact.php', data=form_data, allow_redirects=False)
+        response = requests.post('http://web:8080/add-systeme-io-contact.php', data=form_data, allow_redirects=False)
         self.assertEqual(response.status_code, 303)
         self.assertEqual(response.headers['Location'], form_data['redirect-to'])
 
         # Update the contact's first name
         form_data['first_name'] = 'Jane'
-        response = requests.post('http://web:8080/add-contact.php', data=form_data, allow_redirects=False)
+        response = requests.post('http://web:8080/add-systeme-io-contact.php', data=form_data, allow_redirects=False)
         self.assertEqual(response.status_code, 303)
         self.assertEqual(response.headers['Location'], form_data['redirect-to'])
 
