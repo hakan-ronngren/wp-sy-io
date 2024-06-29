@@ -42,7 +42,7 @@ browse: run
 
 staging: test
 	mkdir staging 2> /dev/null && cp templates/systeme-io-config.php staging/ || true
-	cp htdocs/add-subscriber.php staging/
+	cp htdocs/add-systeme-io-contact.php staging/
 
 clean: kill
 	docker rmi $(WEB_CONTAINER) || true
