@@ -29,6 +29,40 @@ class TestPostAddContactPHP(unittest.TestCase):
         contact = self.assert_get_contact_succeeds(form_data['email'])
         self.assertEqual(contact.get('fields'), [{'slug': 'first_name', 'value': form_data['first_name']}])
 
+    def test_add_contact_with_a_northern_european_name(self):
+        form_data = {
+            'first_name': 'Håkan',
+            'email': 'test@example.com',
+            'redirect-to': 'https://example.com/success'
+        }
+        response = requests.post(
+            'http://web:8080/add-contact.php',
+            data=form_data,
+            headers={'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+            allow_redirects=False
+        )
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response.headers['Location'], form_data['redirect-to'])
+        contact = self.assert_get_contact_succeeds(form_data['email'])
+        self.assertEqual(contact.get('fields'), [{'slug': 'first_name', 'value': form_data['first_name']}])
+
+    def test_add_contact_with_a_japanese_name(self):
+        form_data = {
+            'first_name': '千代子',
+            'email': 'test@example.com',
+            'redirect-to': 'https://example.com/success'
+        }
+        response = requests.post(
+            'http://web:8080/add-contact.php',
+            data=form_data,
+            headers={'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+            allow_redirects=False
+        )
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response.headers['Location'], form_data['redirect-to'])
+        contact = self.assert_get_contact_succeeds(form_data['email'])
+        self.assertEqual(contact.get('fields'), [{'slug': 'first_name', 'value': form_data['first_name']}])
+
     def test_add_new_contact_invalid_name(self):
         form_data = {
             'first_name': 'John123', # Invalid name
@@ -135,7 +169,45 @@ class TestPostAddContactPHP(unittest.TestCase):
         contact = self.assert_get_contact_succeeds(form_data['email'])
         self.assert_contact_has_tags(contact, ['tag1', 'tag2'])
 
-    # TODO: Test that name can be updated (new functionality; also requires PATCH support in the API mock)
+    def test_set_first_name_after_adding_contact_without_name(self):
+        form_data = {
+            'email': 'test@example.com',
+            'redirect-to': 'https://example.com/success',
+            'first_name': ''
+        }
+
+        response = requests.post('http://web:8080/add-contact.php', data=form_data, allow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response.headers['Location'], form_data['redirect-to'])
+
+        # Update the contact's first name
+        form_data['first_name'] = 'John'
+        response = requests.post('http://web:8080/add-contact.php', data=form_data, allow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response.headers['Location'], form_data['redirect-to'])
+
+        contact = self.assert_get_contact_succeeds(form_data['email'])
+        self.assertEqual(contact.get('fields'), [{'slug': 'first_name', 'value': form_data['first_name']}])
+
+    def test_change_first_name(self):
+        # Add a new contact
+        form_data = {
+            'email': 'test@example.com',
+            'redirect-to': 'https://example.com/success',
+            'first_name': 'John'
+        }
+        response = requests.post('http://web:8080/add-contact.php', data=form_data, allow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response.headers['Location'], form_data['redirect-to'])
+
+        # Update the contact's first name
+        form_data['first_name'] = 'Jane'
+        response = requests.post('http://web:8080/add-contact.php', data=form_data, allow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response.headers['Location'], form_data['redirect-to'])
+
+        contact = self.assert_get_contact_succeeds(form_data['email'])
+        self.assertEqual(contact.get('fields'), [{'slug': 'first_name', 'value': form_data['first_name']}])
 
     # TODO: Test that a 500 from the API results in a redirect to the error page (new functionality)
 

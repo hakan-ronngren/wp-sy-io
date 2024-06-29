@@ -71,6 +71,32 @@ function postToAPI($url, $data) {
     return [$status, json_decode($result)];
 }
 
+function patchToAPI($url, $data) {
+    $data_string = json_encode($data);
+    $ch = curl_init($url);
+    if ($ch === false) {
+        throw new InternalServerError('curl_init failed');
+    }
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/merge-patch+json',
+        'Content-Length: ' . strlen($data_string),
+        'X-API-Key: ' . API_KEY,
+    ]);
+    $result = curl_exec($ch);
+    if ($result === false) {
+        $error = curl_error($ch);
+        curl_close($ch);
+        throw new APICallException('curl_exec failed: ' . $error);
+    }
+    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return [$status, json_decode($result)];
+}
+
 function getFromAPI($url) {
     $ch = curl_init($url);
     if ($ch === false) {
@@ -182,12 +208,30 @@ function handlePost() {
     // Replace all single quotes in $firstName with apostrophes to prevent SQL injection.
     // Then validate that $firstName is a string of international characters, spaces, hyphens, and some cultural characters.
     $firstName = str_replace("'", "’", $firstName);
-    if (!empty($firstName) && !preg_match("/^[\p{L}\s.’\-·,]+$/", $firstName)) {
+    if (!empty($firstName) && !preg_match("/^[\p{L}\s.’\-·,]+$/u", $firstName)) {
         throw new InputException("Invalid first_name");
     }
 
     $contact = getContactByEmail($email);
-    if (!$contact) {
+    if ($contact) {
+        $storedFirstName = null;
+        foreach ($contact->fields as $field) {
+            if ($field->slug == 'first_name') {
+                $storedFirstName = $field->value;
+                break;
+            }
+        }
+
+        if ($firstName && $storedFirstName != $firstName) {
+            $path = "/api/contacts/$contact->id";
+            $url = API_BASE_URL . $path;
+            $data = ['fields' => [['slug' => 'first_name', 'value' => $firstName]]];
+            [$status, $contact] = patchToAPI($url, $data);
+            if ($status != 200) {
+                throw new APICallException("Could not update contact");
+            }
+        }
+    } else {
         $contact = addContact($email, $firstName);
     }
 

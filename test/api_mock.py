@@ -73,6 +73,42 @@ def add_contact():
     contacts.append(contact)
     return log_result(jsonify(contact), 201)
 
+@app.route('/api/contacts/<int:contact_id>', methods=['PATCH'])
+def update_contact(contact_id):
+    log_request()
+
+    global contacts
+
+    api_key = request.headers.get('X-API-Key')
+    if not api_key or len(api_key) == 0:
+        return log_result(jsonify({"error":"unauthorized"}), 401)
+
+    contact = next((contact for contact in contacts if contact['id'] == contact_id), None)
+    if not contact:
+        return log_result(jsonify({"error":"contact not found"}), 404)
+
+    # Verify content-type = application/merge-patch+json
+    if request.headers.get('Content-Type') != 'application/merge-patch+json':
+        return log_result(jsonify({"error":"Content-Type must be application/merge-patch+json"}), 415)
+
+    new_contact_data = request.get_json()
+
+    if 'email' in new_contact_data:
+        contact['email'] = new_contact_data['email']
+
+    if 'fields' in new_contact_data:
+        fields = new_contact_data['fields']
+        for field in fields:
+            field_slug = field['slug']
+            field_value = field['value']
+            existing_field = next((f for f in contact['fields'] if f['slug'] == field_slug), None)
+            if existing_field:
+                existing_field['value'] = field_value
+            else:
+                contact['fields'].append({'slug': field_slug, 'value': field_value})
+
+    return log_result(jsonify(contact), 200)
+
 @app.route('/api/contacts/<int:contact_id>/tags', methods=['POST'])
 def assign_tag(contact_id):
     log_request()
