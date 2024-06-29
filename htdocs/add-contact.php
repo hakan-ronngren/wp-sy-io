@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!API_BASE_URL || !API_KEY) {
         # Misconfigured; redirect to a GET request to self, which will run a diagnose
         header("HTTP/1.1 303");
-        header("Location: /add-subscriber.php");
+        header("Location: /add-contact.php");
     } else {
         # The plan is to redirect the visitor different pages depending on whether the request was successful or not
         # but for now we just return a 400 or 500 error unless the request is successful.
