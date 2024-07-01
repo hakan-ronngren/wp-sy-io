@@ -16,9 +16,7 @@ run-prod: build kill
 	docker run -d --rm --name $(PROD_WEB_CONTAINER) -p 8888:8080 -e API_KEY=$$SYSTEME_IO_API_KEY -e API_BASE_URL=https://api.systeme.io -v $$PWD/htdocs:/var/www/localhost/htdocs $(WEB_CONTAINER)
 
 kill:
-	docker kill $(WEB_CONTAINER) || true
-	docker kill $(TEST_CONTAINER) || true
-	docker kill $(PROD_WEB_CONTAINER) || true
+	docker ps --format "{{.Names}}" | grep -E "$(WEB_CONTAINER)|$(TEST_CONTAINER)|$(PROD_WEB_CONTAINER)" | while read -r c; do docker kill $$c; done
 
 build:
 	docker build -t $(WEB_CONTAINER) .

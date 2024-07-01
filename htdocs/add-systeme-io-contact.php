@@ -190,11 +190,9 @@ function validateAndSplitTags($tagsString) {
 
 // Return trimmed and validated parameters in alphabetical order
 function getAndValidatePostParameters() {
-    # Required parameters
     $email = trim($_POST['email'] ?? '');
     $redirectTo = trim($_POST['redirect-to'] ?? '');
-    # Optional parameters
-    $firstName = $_POST['first_name'] ?? null;
+    $firstName = $_POST['first_name'] ?? '';
 
     $tags = validateAndSplitTags($_POST['tags'] ?? "");
 
@@ -207,13 +205,11 @@ function getAndValidatePostParameters() {
     }
 
     // Replace all single quotes in $firstName with apostrophes to prevent SQL injection.
-    // Then validate that $firstName is a string of international characters, spaces, hyphens, and some cultural characters.
-    if (!empty($firstName)) {
-        $firstName = trim($firstName);
-        $firstName = str_replace("'", "’", $firstName);
-        if (strpos($firstName, "--") !== false || !preg_match("/^[\p{L}\s.’\-·,]+$/u", $firstName)) {
-            throw new InputException("Invalid first_name");
-        }
+    // Then validate that $firstName is a string of zero or more international characters, spaces, hyphens, and some cultural characters.
+    $firstName = trim($firstName);
+    $firstName = str_replace("'", "’", $firstName);
+    if (strpos($firstName, "--") !== false || !preg_match("/^[\p{L}\s.’\-·,]*$/u", $firstName)) {
+        throw new InputException("Invalid first_name");
     }
 
     // Mind the alphabetical order

@@ -31,7 +31,7 @@
             border: 1px solid #ccc;
             border-radius: 25px;
         }
-        input[type="submit"] {
+        input[type="submit"].add-contact {
             padding: 10px;
             background-color: #007bff;
             color: #fff;
@@ -39,7 +39,7 @@
             border-radius: 25px;
             cursor: pointer;
         }
-        input[type="submit"]:disabled {
+        input[type="submit"].add-contact:disabled {
             background-color: #ccc;
             cursor: not-allowed;
         }
@@ -47,38 +47,40 @@
 </head>
 <body>
 
-    <!-- You may copy the script and form elements into your page -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const emailInput = document.querySelector('input[name="email"]');
-            const submitButton = document.querySelector('input[type="submit"]');
+<!-- You may copy the script and form elements into your page -->
 
-            // Initially disable the submit button
-            submitButton.disabled = true;
+<form action="add-systeme-io-contact.php" method="post" accept-charset="UTF-8">
+    <input id="demo_add_contact_first_name" type="text" name="first_name" autocomplete="given-name" placeholder="What should I call you?"
+        oninput="validateAddContactForm('demo')">
+    <input id="demo_add_contact_email" type="email" name="email" placeholder="Email"
+        oninput="validateAddContactForm('demo')">
+    <input id="demo_add_contact_submit" type="submit" value="Subscribe" class="add-contact" disabled>
+    <input type="hidden" name="tags" value="tag1,tag2">
+    <input type="hidden" name="redirect-to" value="http://localhost:8080/success.html">
+</form>
 
-            // Function to validate email
-            function validateEmail(email) {
-                const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                return regex.test(email);
-            }
+<script>
+// Control the form submit button. This function can act on multiple forms on the same page,
+// each with a unique idPrefix such as "hero" or "footer".
+function validateAddContactForm(idPrefix) {
+    const firstNameInput = document.querySelector("#" + idPrefix + "_add_contact_first_name");
+    const emailInput = document.querySelector("#" + idPrefix + "_add_contact_email");
+    const submitButton = document.querySelector("#" + idPrefix + "_add_contact_submit");
 
-            // Listen for input event on email field
-            emailInput.addEventListener('input', function() {
-                if (validateEmail(emailInput.value)) {
-                    submitButton.disabled = false; // Enable submit button
-                } else {
-                    submitButton.disabled = true; // Keep submit button disabled
-                }
-            });
-        });
-    </script>
-    <form action="add-systeme-io-contact.php" method="post" accept-charset="UTF-8">
-        <input type="text" name="first_name" placeholder="What should I call you?">
-        <input type="text" name="email" placeholder="Email">
-        <input type="submit" value="Submit" disabled>
-        <input type="hidden" name="tags" value="tag1,tag2">
-        <input type="hidden" name="redirect-to" value="http://localhost:8080/success.html">
-    </form>
+    function isFirstNameValid(firstName) {
+        firstName = firstName.replace(/'/g, '’');
+        const regex = /^[\p{L}\s.’\-·,]*$/u;
+        return regex.test(firstName) && !firstName.includes('--');
+    }
+
+    function isEmailValid(email) {
+        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return regex.test(email) && !email.includes('@example.');
+    }
+
+    submitButton.disabled = !(isFirstNameValid(firstNameInput.value) && isEmailValid(emailInput.value));
+}
+</script>
 
 </body>
 </html>
