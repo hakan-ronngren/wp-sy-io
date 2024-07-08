@@ -36,6 +36,7 @@ list-mock-requests:
 	docker exec -it systeme_mock cat /var/log/requests.txt
 
 browse: run
+	timeout 5.0s sh -c 'while ! curl -fs http://localhost:8080/ ; do sleep 1 ; done'
 	open http://localhost:8080/sample-form.html
 
 staging: test

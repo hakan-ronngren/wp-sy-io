@@ -47,10 +47,12 @@
 </head>
 <body>
 
-<!-- You may copy the script and form elements into your page -->
 
+<!-- Put this in as many places as you like, replacing "demo_" with different prefixes -->
 <form action="add-systeme-io-contact.php" method="post" accept-charset="UTF-8">
     <input id="demo_add_contact_first_name" type="text" name="first_name" autocomplete="given-name" placeholder="What should I call you?"
+        oninput="validateAddContactForm('demo')">
+    <input id="demo_add_contact_last_name" type="text" name="last_name" autocomplete="family-name" placeholder="What is your last name"
         oninput="validateAddContactForm('demo')">
     <input id="demo_add_contact_email" type="email" name="email" placeholder="Email"
         oninput="validateAddContactForm('demo')">
@@ -58,7 +60,12 @@
     <input type="hidden" name="tags" value="tag1,tag2">
     <input type="hidden" name="redirect-to" value="http://localhost:8080/success.html">
 </form>
+<script>
+document.querySelector("#demo_add_contact_last_name").style.display = "none";
+</script>
 
+
+<!-- Put this in one place, such as in a common page header or footer -->
 <script>
 // Control the form submit button. This function can act on multiple forms on the same page,
 // each with a unique idPrefix such as "hero" or "footer".

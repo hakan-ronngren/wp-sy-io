@@ -123,6 +123,17 @@ class TestPostAddContactPHP(unittest.TestCase):
         response = requests.post('http://web:8080/add-systeme-io-contact.php', data=form_data, allow_redirects=False)
         self.assertEqual(response.status_code, 400)
 
+    def test_add_new_contact_the_way_a_bot_would_do_it(self):
+        # This field should be in the form, but there should also be a script that changes it to display=none
+        form_data = {
+            'first_name': 'John',
+            'last_name': 'Doe',
+            'email': TEST_EMAIL,
+            'redirect-to': SUCCESS_URL
+        }
+        response = requests.post('http://web:8080/add-systeme-io-contact.php', data=form_data, allow_redirects=False)
+        self.assertEqual(response.status_code, 400)
+
     def test_add_contact_and_assign_tag(self):
         # Add a new contact
         form_data = {

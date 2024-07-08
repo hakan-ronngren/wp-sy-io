@@ -193,6 +193,11 @@ function getAndValidatePostParameters() {
     $email = trim($_POST['email'] ?? '');
     $redirectTo = trim($_POST['redirect-to'] ?? '');
     $firstName = $_POST['first_name'] ?? '';
+    $honeyPot = $_POST['last_name'] ?? null;
+
+    if ($honeyPot) {
+        throw new InputException("Rejected");
+    }
 
     $tags = validateAndSplitTags($_POST['tags'] ?? "");
 
