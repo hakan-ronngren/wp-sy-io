@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: run kill build network test list-mock-requests browse staging clean
+.PHONY: run run-prod kill build network test list-mock-requests browse clean
 
 NETWORK := test-a54a4c39
 WEB_CONTAINER := web
@@ -40,10 +40,6 @@ list-mock-requests:
 browse: run
 	timeout 5.0s sh -c 'while ! curl -fs http://localhost:8080/ ; do sleep 1 ; done'
 	open http://localhost:8080/sample-form.html
-
-staging: test
-	mkdir staging 2> /dev/null && cp templates/systeme-io-config.php staging/ || true
-	cp htdocs/add-systeme-io-contact.php staging/
 
 clean: kill
 	docker rmi $(WEB_CONTAINER) || true

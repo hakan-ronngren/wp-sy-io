@@ -11,18 +11,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - run: docker ps --all
-
       - name: Run tests
         run: make test
-
-      - run: docker ps --all
-
-      - name: Kill test containers
-        if: always()
-        run: make kill
-
-      - run: docker ps --all
 
       - name: Install lftp
         run: sudo apt-get update && sudo apt-get install -y lftp
@@ -50,4 +40,5 @@ jobs:
       - name: Clean up
         if: always()
         run: |
-          rm staging/systeme-io-config.php
+          make kill || true
+          rm -rf staging
