@@ -30,7 +30,7 @@ network:
 test: run
 	while ! curl -fs -o /dev/null http://localhost:8080; do sleep 1; done
 	while ! curl -fs -o /dev/null http://localhost:8081; do sleep 1; done
-	docker exec -w /opt $(TEST_CONTAINER) python3 test/test_all.py $(one_test) | sed 's|File "/opt/|File "|'
+	set -o pipefail; docker exec -w /opt $(TEST_CONTAINER) python3 test/test_all.py $(one_test) | sed 's|File "/opt/|File "|'
 
 list-mock-requests:
 	docker exec systeme_mock cat /var/log/requests.txt
