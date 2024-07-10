@@ -8,8 +8,8 @@ class APICallException extends Exception {}
 
 # TODO: Save data locally if a POST request fails
 
-if (file_exists('systeme-io-config.php')) {
-    require_once 'systeme-io-config.php';
+if (file_exists('.private/systeme-io-config.php')) {
+    require_once '.private/systeme-io-config.php';
 } else {
     define('API_BASE_URL', getenv('API_BASE_URL') ?: 'https://api.systeme.io');
     define('API_KEY', getenv('API_KEY') ?: null);

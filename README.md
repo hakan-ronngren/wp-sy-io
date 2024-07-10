@@ -16,6 +16,8 @@ Run `make staging` to prepare the `./staging` area, which will contain everythin
 
 The `systeme-io-config.php` file will be incomplete. You may want to put the API token in the target environment rather than keeping a copy in your development environment. If you delete your local file, it won't be put there again until you wipe and recreate the staging directory as a whole. Deleting your local file is a good way of preventing yourself from overwriting the target file.
 
+Put it in a subfolder named `.private`, where there is a `.htaccess` file that just says `Deny from all`.
+
 If the `add-systeme-io-contact.php` script finds a misconfiguration, it will redirect to a request that prints diagnostic output. (Nothing sensitive there.) This enables you to easily test after deployment by just re-submitting a subscription through your form.
 
 ## Debug
