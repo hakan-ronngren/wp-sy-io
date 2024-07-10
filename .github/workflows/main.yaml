@@ -17,3 +17,31 @@ jobs:
       - name: Kill test containers
         if: always()
         run: make kill
+
+      - name: Install lftp
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
+      - name: Create config file
+        run: |
+          mkdir -p staging
+          cat <<END > staging/systeme-io-config.php
+          <?php
+          define('API_BASE_URL', 'https://api.systeme.io');
+          define('API_KEY', '${{ secrets.SYSTEME_IO_API_KEY }}');
+          END
+
+      - name: Upload files via lftp
+        run: |
+          lftp <<END
+          set ssl:verify-certificate false
+          open -u ${{ secrets.FTP_USER }},${{ secrets.FTP_PASSWORD }} ftp.${{ secrets.DOMAIN }}
+          cd /domains/${{ secrets.DOMAIN }}
+          put htdocs/add-systeme-io-contact.php -o public_html/add-systeme-io-contact-test.php
+          put staging/systeme-io-config.php -o public_html/.private/add-systeme-io-contact-test.php
+          bye
+          END
+
+      - name: Clean up
+        if: always()
+        run: |
+          rm staging/systeme-io-config.php
