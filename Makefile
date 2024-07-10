@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 .PHONY: run kill build network test list-mock-requests browse staging clean
 
 NETWORK := test-a54a4c39
