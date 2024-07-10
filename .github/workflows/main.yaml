@@ -15,6 +15,7 @@ jobs:
 
       - name: Run tests
         run: make test
+        shell: bash
 
       - run: docker ps --all
 
