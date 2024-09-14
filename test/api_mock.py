@@ -6,8 +6,12 @@ import time
 
 app = Flask(__name__)
 
+#-------------------
+# Test Endpoints
+
 contacts = []
 latest_contact_id = 0
+is_broken = False
 
 tags = [
     {'id': 1, 'name': 'tag1'},
@@ -15,6 +19,9 @@ tags = [
     {'id': 3, 'name': 'tag3'}
 ]
 
+slack_payloads = []
+
+# Only used as a readiness probe
 @app.route('/')
 def root():
     log_request()
@@ -25,15 +32,43 @@ def root():
 def reset():
     log_request()
 
+    global is_broken
+    is_broken = False
+
     global contacts
-    global latest_contact_id
     contacts = []
+
+    global latest_contact_id
     latest_contact_id = 0
+
+    global slack_payloads
+    slack_payloads = []
+
     return log_result(jsonify({'result': 'OK'}), 204)
+
+@app.route('/test/break', methods=['POST'])
+def break_server():
+    log_request()
+
+    global is_broken
+    is_broken = True
+    return log_result(jsonify({'result': 'OK'}), 204)
+
+@app.route('/test/slack/payloads', methods=['GET'])
+def get_slack_payloads():
+    log_request()
+    return log_result(jsonify(slack_payloads), 200)
+
+#-------------------
+# Systeme.IO Endpoints
 
 @app.route('/api/contacts', methods=['POST'])
 def add_contact():
     log_request()
+
+    global is_broken
+    if is_broken:
+        return log_result(jsonify({"error":"emulating broken backend"}), 500)
 
     global latest_contact_id
     global contacts
@@ -77,6 +112,10 @@ def add_contact():
 def update_contact(contact_id):
     log_request()
 
+    global is_broken
+    if is_broken:
+        return log_result(jsonify({"error":"emulating broken backend"}), 500)
+
     global contacts
 
     api_key = request.headers.get('X-API-Key')
@@ -113,6 +152,10 @@ def update_contact(contact_id):
 def assign_tag(contact_id):
     log_request()
 
+    global is_broken
+    if is_broken:
+        return log_result(jsonify({"error":"emulating broken backend"}), 500)
+
     global contacts
     global tags
 
@@ -143,6 +186,10 @@ def assign_tag(contact_id):
 def list_contacts():
     log_request()
 
+    global is_broken
+    if is_broken:
+        return log_result(jsonify({"error":"emulating broken backend"}), 500)
+
     email = request.args.get('email')
 
     global contacts
@@ -157,6 +204,10 @@ def list_contacts():
 def list_tags():
     log_request()
 
+    global is_broken
+    if is_broken:
+        return log_result(jsonify({"error":"emulating broken backend"}), 500)
+
     query = request.args.get('query')
 
     global tags
@@ -166,6 +217,25 @@ def list_tags():
         return log_result(jsonify({'items': selection, 'hasMore': False}), 200)
     else:
         return log_result(jsonify({'items': tags, 'hasMore': False}), 200)
+
+#-------------------
+# Slack Endpoints
+
+@app.route('/api/chat.postMessage', methods=['POST'])
+def post_message():
+    log_request()
+
+    authorization = request.headers.get('Authorization')
+    if not authorization or authorization != 'Bearer 123':
+        return log_result(jsonify({"error":"unauthorized"}), 401)
+
+    global slack_payloads
+    slack_payloads.append(request.get_json())
+
+    return log_result(jsonify({'result': 'OK'}), 200)
+
+#-------------------
+# Helper Functions
 
 def log_request():
     timestamp = str(time.time())
@@ -182,6 +252,7 @@ def log_result(response, status_code):
         f.write(str(status_code) + '\n')
         f.write(str(response.json) + '\n')
     return response, status_code
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8081)

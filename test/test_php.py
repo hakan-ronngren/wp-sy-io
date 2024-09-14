@@ -237,6 +237,26 @@ class TestPostAddContactPHP(unittest.TestCase):
         contact = self.assert_get_contact_succeeds(form_data['email'])
         self.assertEqual(contact.get('fields'), [{'slug': 'first_name', 'value': form_data['first_name']}])
 
+    @unittest.skip("Not implemented yet")
+    def test_add_contact_notifies_without_mention_when_new_contact_is_added(self):
+        pass
+
+    def test_add_contact_indicates_success_and_notifies_with_mention_when_api_is_broken(self):
+        requests.post('http://localhost:8081/test/break')
+        form_data = {
+            'email': TEST_EMAIL,
+            'redirect-to': SUCCESS_URL
+        }
+        response = requests.post('http://web:8080/add-systeme-io-contact.php', data=form_data, allow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response.headers['Location'], SUCCESS_URL)
+
+        slack_payloads = requests.get('http://localhost:8081/test/slack/payloads').json()
+        self.assertEqual(len(slack_payloads), 1)
+        self.assertIn('error', slack_payloads[0]['text'])
+        self.assertIn('@someone', slack_payloads[0]['text'])
+        self.assertEqual(slack_payloads[0]['channel'], '#api-errors')
+
     # TODO: Test that a 500 from the API results in a redirect to the error page (new functionality)
 
     # --- Utility Functions ---

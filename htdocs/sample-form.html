@@ -48,31 +48,29 @@
 <body>
 
 
-<!-- Put this in as many places as you like, replacing "demo_" with different prefixes -->
+<!-- Put this in as many places as you like -->
 <form action="add-systeme-io-contact.php" method="post" accept-charset="UTF-8">
-    <input id="demo_add_contact_first_name" type="text" name="first_name" autocomplete="given-name" placeholder="What should I call you?"
-        oninput="validateAddContactForm('demo')">
-    <input id="demo_add_contact_last_name" type="text" name="last_name" autocomplete="family-name" placeholder="What is your last name"
-        oninput="validateAddContactForm('demo')">
-    <input id="demo_add_contact_email" type="email" name="email" placeholder="Email"
-        oninput="validateAddContactForm('demo')">
-    <input id="demo_add_contact_submit" type="submit" value="Subscribe" class="add-contact" disabled>
+    <input type="text" name="first_name" autocomplete="given-name" placeholder="What should I call you?"
+        oninput="validateAddContactForm(event)">
+    <input type="text" name="last_name" autocomplete="family-name" placeholder="What is your last name"
+        oninput="validateAddContactForm(event)"
+        tabindex="-1" style="position: absolute; left: -9999px">
+    <input type="email" name="email" placeholder="Email"
+        oninput="validateAddContactForm(event)">
+    <input type="submit" value="Subscribe" class="add-contact" disabled>
     <input type="hidden" name="tags" value="tag1,tag2">
     <input type="hidden" name="redirect-to" value="http://localhost:8080/success.html">
 </form>
-<script>
-document.querySelector("#demo_add_contact_last_name").style.display = "none";
-</script>
 
 
 <!-- Put this in one place, such as in a common page header or footer -->
 <script>
-// Control the form submit button. This function can act on multiple forms on the same page,
-// each with a unique idPrefix such as "hero" or "footer".
-function validateAddContactForm(idPrefix) {
-    const firstNameInput = document.querySelector("#" + idPrefix + "_add_contact_first_name");
-    const emailInput = document.querySelector("#" + idPrefix + "_add_contact_email");
-    const submitButton = document.querySelector("#" + idPrefix + "_add_contact_submit");
+// Control the form submit button. The affected form is identified even if there are multiple forms on the page.
+function validateAddContactForm(event) {
+    const form = event.target.form;
+    const firstNameInput = form.querySelector('input[name="first_name"]');
+    const emailInput = form.querySelector('input[name="email"]');
+    const submitButton = form.querySelector('input[type="submit"]');
 
     function isFirstNameValid(firstName) {
         firstName = firstName.replace(/'/g, '’');
