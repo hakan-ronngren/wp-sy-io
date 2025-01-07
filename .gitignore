@@ -1,3 +1,3 @@
-api-key-private-account.sourceme
+api-key*.sourceme
 __pycache__
 .vscode
